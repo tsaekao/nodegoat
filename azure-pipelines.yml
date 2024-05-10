@@ -18,11 +18,6 @@ variables:
     customPTCloseStatus: Closed
 
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install Node.js'
-
 - task: Bash@3
   displayName: Auto-Packaing With Veracode CLI
   enabled: true
