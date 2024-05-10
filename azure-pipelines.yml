@@ -15,7 +15,25 @@ steps:
     versionSpec: '10.x'
   displayName: 'Install Node.js'
 
-- script: |
-    npm install
-    npm run build
-  displayName: 'npm install and build'
+- task: Bash@3
+  displayName: Veracode CLI
+  enabled: true
+  inputs:
+    targetType: "inline"
+    script: |
+      pwd
+      export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
+      export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
+      curl -fsS https://tools.veracode.com/veracode-cli/install | sh
+      ./veracode package -s '$(Build.SourcesDirectory)' -o '$(build.artifactstagingdirectory)' -a true
+
+- task: Veracode@3
+  inputs:
+    ConnectionDetailsSelection: 'Service Connection'
+    AnalysisService: 'Veracode-Demo'
+    veracodeAppProfile: 'nodegoat'
+    version: 'nodegoat-$(build.buildNumber)'
+    filepath: '$(build.artifactstagingdirectory)'
+    sandboxName: 'Azure DevOps'
+    createSandBox: true
+    maximumWaitTime: '360'
