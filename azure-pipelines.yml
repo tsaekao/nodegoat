@@ -11,7 +11,7 @@ pool:
 
 variables:
     enableCustomProcessTemplate: true
-    customWorkItemType: Issue
+    customWorkItemType: Flaw
     customPTActiveStatus: Working
     customPTNewStatus: Introducing
     customPTResolvedStatus: Resolved
