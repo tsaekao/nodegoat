@@ -13,7 +13,7 @@ variables:
     enableCustomProcessTemplate: true
     customWorkItemType: Flaw
     customPTActiveStatus: Working
-    customPTNewStatus: Introducing
+    #customPTNewStatus: Introducing
     customPTResolvedStatus: Resolved
     customPTCloseStatus: Closed
 
