@@ -9,6 +9,14 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+    enableCustomProcessTemplate: true
+    customWorkItemType: Issue
+    customPTActiveStatus: Working
+    customPTNewStatus: Introducing
+    customPTResolvedStatus: Resolved
+    customPTCloseStatus: Closed
+
 steps:
 - task: NodeTool@0
   inputs:
@@ -16,7 +24,7 @@ steps:
   displayName: 'Install Node.js'
 
 - task: Bash@3
-  displayName: Veracode CLI
+  displayName: Auto-Packaing With Veracode CLI
   enabled: true
   inputs:
     targetType: "inline"
@@ -28,6 +36,8 @@ steps:
       ./veracode package -s '$(Build.SourcesDirectory)' -o '$(build.artifactstagingdirectory)' -a true
 
 - task: Veracode@3
+  displayName: Upload & Scan
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -37,3 +47,20 @@ steps:
     sandboxName: 'Azure DevOps'
     createSandBox: true
     maximumWaitTime: '360'
+
+- task: Veracode Flaw Importer@3
+  enabled: true
+  inputs:
+    ConnectionDetailsSelection: 'Service Connection'
+    AnalysisService: 'Veracode-Demo'
+    veracodeAppProfile: 'nodegoat'
+    sandboxName: 'Azure DevOps'
+    scanType: 'Static, SCA'
+    importType: 'All Unmitigated Flaws Violating Policy'
+    workItemType: 'Issue'
+    area: '$(system.teamProject)'
+    overwriteAreaPathInWorkItemsOnImport: true
+    iterationPath: '$(system.teamProject)'
+    overwriteIterationPath: true
+    flawImportLimit: '1000'
+    customFields: 'Veracode'
