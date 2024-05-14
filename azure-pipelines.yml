@@ -28,11 +28,11 @@ steps:
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
       curl -fsS https://tools.veracode.com/veracode-cli/install | sh
-      ./veracode package -s '$(Build.SourcesDirectory)' -o '$(build.artifactstagingdirectory)' -a true
+      ./veracode package -s '$(Build.SourcesDirectory)' -o '- task: VeracodePipelineScan@0
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: false
+  enabled: true
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -41,11 +41,19 @@ steps:
     filepath: '$(build.artifactstagingdirectory)'
     sandboxName: 'Azure DevOps'
     createSandBox: true
-    importResults: true
+    importResults: false
     maximumWaitTime: '360'
 
-- task: Veracode Flaw Importer@3
+- task: VeracodePipelineScan@0
+  displayName: Pipeline Scan
   enabled: true
+  inputs:
+    VeracodeAPIID: '$(VERACODE_API_ID)'
+    VeracodeAPIsecret: '$(VERACODE_API_KEY)'
+    fileToScan: '$(build.artifactstagingdirectory)/*'
+
+- task: Veracode Flaw Importer@3
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -60,3 +68,4 @@ steps:
     overwriteIterationPath: true
     flawImportLimit: '1000'
     customFields: 'Veracode'
+
