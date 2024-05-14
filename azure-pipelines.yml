@@ -32,7 +32,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: true
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -50,7 +50,7 @@ steps:
   inputs:
     VeracodeAPIID: '$(VERACODE_API_ID)'
     VeracodeAPIsecret: '$(VERACODE_API_KEY)'
-    fileToScan: '$(build.artifactstagingdirectory)/*'
+    fileToScan: '$(build.artifactstagingdirectory)'
 
 - task: Veracode Flaw Importer@3
   enabled: false
