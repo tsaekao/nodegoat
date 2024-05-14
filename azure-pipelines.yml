@@ -39,7 +39,7 @@ steps:
     veracodeAppProfile: 'nodegoat'
     version: 'nodegoat-$(build.buildNumber)'
     filepath: '$(build.artifactstagingdirectory)'
-    # sandboxName: 'Azure DevOps'
+    sandboxName: 'Azure DevOps'
     createSandBox: false
     importResults: true
     maximumWaitTime: '360'
