@@ -1,7 +1,6 @@
 # Node.js
 # Build a general Node.js project with npm.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+# Add steps that analyze code, save build artifacts, and scan
 
 trigger:
 - master
@@ -41,7 +40,7 @@ steps:
     filepath: '$(build.artifactstagingdirectory)'
     sandboxName: 'Azure DevOps'
     createSandBox: false
-    importResults: true
+    importResults: false
     maximumWaitTime: '360'
 
 - task: VeracodePipelineScan@0
