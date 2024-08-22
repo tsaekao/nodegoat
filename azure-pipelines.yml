@@ -43,6 +43,16 @@ steps:
     importResults: false
     maximumWaitTime: '360'
 
+- task: VeracodePipelineScan@0
+  displayName: Pipeline Scan
+  enabled: true
+  inputs:
+    VeracodeAPIID: '$(VERACODE_API_ID)'
+    VeracodeAPIsecret: '$(VERACODE_API_KEY)'
+    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
+    breakPipeline: true
+    additionalFlags: '--fail_on_severity="Very High, High"'
+
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
   enabled: true
@@ -64,16 +74,6 @@ steps:
     VeracodeAPIID: '$(VERACODE_API_ID)'
     VeracodeAPIsecret: '$(VERACODE_API_KEY)'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-
-- task: VeracodePipelineScan@0
-  displayName: Pipeline Scan
-  enabled: true
-  inputs:
-    VeracodeAPIID: '$(VERACODE_API_ID)'
-    VeracodeAPIsecret: '$(VERACODE_API_KEY)'
-    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-    breakPipeline: true
-    additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Veracode Flaw Importer@3
   enabled: false
