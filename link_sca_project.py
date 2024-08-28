@@ -1,3 +1,7 @@
+# This is a simple python script that will link an SCA Agent-Based Scan project to a Veracode application profile
+# The 5 parameters needed are the SCA Workspace name, SCA Project name, application profile name, and Veracode API ID and API Key
+# It also uses the Veracode python API signing library for HMAC authentication, which is needed to use the APIs
+
 import time
 import requests
 import uuid
@@ -17,7 +21,7 @@ def make_api_request(base_url, endpoint, method, api_id, api_key):
     # Create the HMAC Auth object using Veracode's signing library
     auth = RequestsAuthPluginVeracodeHMAC(api_key_id=api_id, api_key_secret=api_key)
     
-    # Debugging output to check headers and URL
+    # Logging to check headers and URL
     print(f"Request URL: {url}")
     print(f"Headers: {headers}")
 
@@ -28,7 +32,7 @@ def make_api_request(base_url, endpoint, method, api_id, api_key):
     print(f"Response Status Code: {response.status_code}")
     print(f"Response Body: {response.text}")
 
-    response.raise_for_status()  # This will raise the HTTPError for status codes 4xx/5xx
+    response.raise_for_status()  # This will raise the HTTPError for 400s and 500s
     return response.json()
 
 def get_workspace_guid(base_url, workspace_name, api_id, api_key):
@@ -61,7 +65,6 @@ def get_app_guid(base_url, appname, api_id, api_key):
     endpoint = "/appsec/v1/applications"
     data = make_api_request(base_url, endpoint, "GET", api_id, api_key)
     
-    # Check if '_embedded' and 'applications' exist in the response
     if '_embedded' in data and 'applications' in data['_embedded']:
         applications = data['_embedded']['applications']
         for app in applications:
@@ -91,11 +94,11 @@ def link_sca_project(base_url, app_guid, project_guid, api_id, api_key):
 # Main execution
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Link an SCA project to a Veracode application profile.')
-    parser.add_argument('--workspace_name', required=True, help='The name of the workspace')
-    parser.add_argument('--project_name', required=True, help='The name of the project')
+    parser.add_argument('--workspace_name', required=True, help='The name of the SCA workspace')
+    parser.add_argument('--project_name', required=True, help='The name of the SCA project')
     parser.add_argument('--application_profile', required=True, help='The name of the application profile')
-    parser.add_argument('--api_id', required=True, help='The API ID for authentication')
-    parser.add_argument('--api_key', required=True, help='The API Key for authentication')
+    parser.add_argument('--api_id', required=True, help='The Veracode API ID for authentication')
+    parser.add_argument('--api_key', required=True, help='The Veracode API Key for authentication')
 
     args = parser.parse_args()
 
