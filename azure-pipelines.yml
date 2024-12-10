@@ -31,7 +31,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: false
+  enabled: true
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -76,7 +76,7 @@ steps:
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
 
 - task: Veracode Flaw Importer@3
-  enabled: false
+  enabled: true
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
