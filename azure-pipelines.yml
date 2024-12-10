@@ -89,6 +89,6 @@ steps:
     overwriteAreaPathInWorkItemsOnImport: true
     iterationPath: '$(system.teamProject)'
     overwriteIterationPath: true
+    addCustomTag: 'external, internet facing'
     flawImportLimit: '1000'
-    customFields: 'Veracode'
 
