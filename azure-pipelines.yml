@@ -38,14 +38,14 @@ steps:
     veracodeAppProfile: 'nodegoat'
     version: 'nodegoat-$(build.buildNumber)'
     filepath: '$(build.artifactstagingdirectory)'
-    sandboxName: 'Azure DevOps'
+    # sandboxName: 'Azure DevOps'
     createSandBox: false
     importResults: false
     maximumWaitTime: '360'
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan
-  enabled: true
+  enabled: false
   inputs:
     VeracodeAPIID: '$(VERACODE_API_ID)'
     VeracodeAPIsecret: '$(VERACODE_API_KEY)'
@@ -55,7 +55,7 @@ steps:
 
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
-  enabled: true
+  enabled: false
   inputs:
     script: |
       export SCM_URI='https://nodegoat-ADO'
