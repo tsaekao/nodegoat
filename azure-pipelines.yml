@@ -62,7 +62,7 @@ steps:
     veracodeAppProfile: 'nodegoat-customfields'
     version: '$(build.buildNumber)'
     filepath: '$(build.artifactstagingdirectory)'
-    optargs: '-customfieldname "Language" value "Node.JS"'
+    optargs: '-customfield_name "Language" value "Node.JS"'
     createProfile: true
     maximumWaitTime: '360'
 
