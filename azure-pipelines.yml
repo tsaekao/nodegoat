@@ -62,7 +62,7 @@ steps:
     veracodeAppProfile: 'nodegoat-customfields'
     version: '$(build.buildNumber)'
     filepath: '$(build.artifactstagingdirectory)'
-    optargs: '-customfield name="Language" value="Java"'
+    optargs: -customfield name="Language" value="Java"
     createProfile: true
     maximumWaitTime: '360'
 
