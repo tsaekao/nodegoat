@@ -59,10 +59,10 @@ steps:
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
-    veracodeAppProfile: 'nodegoat-customfields2'
+    veracodeAppProfile: 'nodegoat-customfields'
     version: '$(build.buildNumber)'
     filepath: '$(build.artifactstagingdirectory)'
-    optargs: '-"customfieldname "Language" value "Node.JS""'
+    optargs: '-customfieldname "Language" value "Node.JS"'
     createProfile: true
     maximumWaitTime: '360'
 
