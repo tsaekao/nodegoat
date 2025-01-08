@@ -41,7 +41,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: false
+  enabled: true
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -55,7 +55,7 @@ steps:
 
 - task: Veracode@3
   displayName: Create App Profile and Upload & Scan
-  enabled: true
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -78,7 +78,7 @@ steps:
 
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
-  enabled: false
+  enabled: true
   inputs:
     script: |
       export SCM_URI='https://nodegoat-ADO'
@@ -92,7 +92,7 @@ steps:
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan
-  enabled: false
+  enabled: true
   inputs:
     VeracodeAPIID: '$(VERACODE_API_ID)'
     VeracodeAPIsecret: '$(VERACODE_API_KEY)'
