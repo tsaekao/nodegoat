@@ -66,9 +66,19 @@ steps:
     createProfile: true
     maximumWaitTime: '360'
 
+- task: Bash@3
+  displayName: Retrieve Mitigations
+  enabled: false
+  inputs:
+    targetType: "inline"
+    script: |
+      export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
+      export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
+      ./veracode scan --source alpine:latest --type image || true
+
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan
-  enabled: false
+  enabled: true
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
@@ -88,14 +98,6 @@ steps:
       export SCM_REF=master
       export SCM_REV=1.0
       curl -sSL $scaDownloadUrl | env bash -s scan --scm-uri $SCM_URI --scm-rev $SCM_REV --scm-ref $SCM_REF --scm-ref-type $SCM_REF_TYPE --update-advisor --allow-dirty
-
-- task: VeracodePipelineScan@0
-  displayName: Pipeline Scan
-  enabled: true
-  inputs:
-    VeracodeAPIID: '$(VERACODE_API_ID)'
-    VeracodeAPIsecret: '$(VERACODE_API_KEY)'
-    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
 
 - task: Veracode Flaw Importer@3
   enabled: false
