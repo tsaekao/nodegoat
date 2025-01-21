@@ -85,7 +85,7 @@ steps:
       pip install -r requirements.txt
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
-      python vcpipemit.py -an nodegoat --results ../pipeline-baseline-file.json
+      python vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
