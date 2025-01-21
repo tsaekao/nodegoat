@@ -70,8 +70,7 @@ steps:
   displayName: Pipeline Scan
   enabled: false
   inputs:
-    VeracodeAPIID: '$(VERACODE_API_ID)'
-    VeracodeAPIsecret: '$(VERACODE_API_KEY)'
+    serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
     breakPipeline: false
     additionalFlags: '--fail_on_severity="Very High, High"'
