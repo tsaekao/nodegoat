@@ -41,7 +41,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: true
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -66,24 +66,40 @@ steps:
     createProfile: true
     maximumWaitTime: '360'
 
+- task: VeracodePipelineScan@0
+  displayName: Pipeline Scan Before Mitigations
+  enabled: true
+  inputs:
+    serviceConnection: 'Veracode-Demo'
+    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
+    policyName: 'Veracode Recommended Medium'
+    breakPipeline: false
+    baselineFileGeneration: true
+    baselineFileStorageProject: 'nodegoat'
+    baselineFileStorageReponame: 'nodegoat'
+
 - task: Bash@3
   displayName: Retrieve Mitigations
   enabled: false
   inputs:
     targetType: "inline"
     script: |
+      git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
+      cd veracode-pipeline-mitigation
+      pip install -r requirements.txt
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
-      ./veracode scan --source alpine:latest --type image || true
+      python vcpipemit.py -an nodegoat --results ../pipeline-baseline-file.json
 
 - task: VeracodePipelineScan@0
-  displayName: Pipeline Scan
+  displayName: Pipeline Scan After Mitigations
   enabled: true
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
+    policyName: 'Veracode Recommended Medium'
     breakPipeline: false
-    additionalFlags: '--fail_on_severity="Very High, High"'
+    baselineFile: '../baseline-*.json'
 
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
