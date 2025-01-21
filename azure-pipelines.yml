@@ -72,15 +72,11 @@ steps:
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-    breakPipeline: false
-    baselineFileGeneration: true
-    baselineFileStorageProject: 'nodegoat'
-    baselineFileStorageReponame: 'nodegoat'
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Bash@3
   displayName: Retrieve Mitigations
-  enabled: false
+  enabled: true
   inputs:
     targetType: "inline"
     script: |
@@ -97,9 +93,8 @@ steps:
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-    breakPipeline: false
     baselineFile: '../baseline-*.json'
-    additionalFlags: 'fail_on_severity="Very High, High"'
+    additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
