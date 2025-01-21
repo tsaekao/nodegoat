@@ -89,6 +89,7 @@ steps:
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       ls
+      pwd
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
@@ -96,7 +97,7 @@ steps:
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-    baselineFile: '$(Build.SourcesDirectory)/baseline-*.json'
+    baselineFile: '$(Build.SourcesDirectory)/baseline-*'
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: CmdLine@2
