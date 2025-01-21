@@ -97,7 +97,7 @@ steps:
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
-    baselineFile: '$(Build.SourcesDirectory)/"baseline-*"'
+    baselineFile: '$(Build.SourcesDirectory)/baseline-7f201585-eb07-4e17-9b77-d29d5da52c7e.json'
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: CmdLine@2
