@@ -82,12 +82,12 @@ steps:
     script: |
       ls
       git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
-      cd veracode-pipeline-mitigation
+      # cd veracode-pipeline-mitigation
       ls
-      pip install -r requirements.txt
+      pip install -r veracode-pipeline-mitigation/requirements.txt
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
-      python vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
+      python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       ls
 
 - task: VeracodePipelineScan@0
