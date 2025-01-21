@@ -88,6 +88,7 @@ steps:
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
       python vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
+      ls
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
