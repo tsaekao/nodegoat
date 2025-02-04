@@ -37,7 +37,8 @@ steps:
     script: |
       export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
       export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
-      ./veracode scan --source alpine:latest --type image --format table || true
+      # ./veracode scan --source alpine:latest --type image --format table || true
+      ./veracode scan --source vulnerables/web-dvwa --type image --format table || true
 
 - task: Veracode@3
   displayName: Upload & Scan
