@@ -1,133 +1,94 @@
-/*
- * Normal Jenkinsfile that will build and do Policy and SCA scans
- */
-
 pipeline {
     agent any
 
-    environment {
-        VERACODE_APP_NAME = 'NodeGoat'      // App Name in the Veracode Platform
-    }
-
-    // this is optional on Linux, if jenkins does not have access to your locally installed docker
-    //tools {
-        // these match up with 'Manage Jenkins -> Global Tool Config'
-        //'org.jenkinsci.plugins.docker.commons.tools.DockerTool' 'docker-latest' 
-    //}
-
-    options {
-        // only keep the last x build logs and artifacts (for space saving)
-        buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20'))
-    }
-
-    stages{
-        stage ('environment verify') {
-            steps {
-                script {
-                    if (isUnix() == true) {
-                        sh 'pwd'
-                        sh 'ls -la'
-                        sh 'echo $PATH'
-                    }
-                    else {
-                        bat 'dir'
-                        bat 'echo %PATH%'
-                    }
-                }
-            }
-        }
-
-        stage ('build') {
-            steps {
-                // use the NodeJS plugin
-                nodejs(nodeJSInstallationName: 'NodeJS-12.0.0') {
-                    script {
-                        if(isUnix() == true) {
-                            //sh 'npm config ls'
-                            sh 'npm --version'
-                            sh 'npm install'
-                        }
-                        else {
-                            // 'npm install' will over-write the package-lock.json file, which will cause 
-                            //      problems for SCA - 'uncommitted changes' (but only on Windows)
-                            bat 'npm --version'
-                            bat 'npm install --no-save'  
-                        }
-                    }
-
-                }
-            }
-        }
-
-        stage ('Veracode scan') {
-            steps {
-                // zip archive for Veracode scanning.  Only include stuff we need,
-                //  aka skip things like node_modules directory
-                zip zipFile: 'upload.zip', archive: false, glob: '*.js,*.json,app/**,artifacts/**,config/**'
-
-                script {
-                    if(isUnix() == true) {
-                        env.HOST_OS = 'Unix'
-                    }
-                    else {
-                        env.HOST_OS = 'Windows'
-                    }
-                }
-
-                echo 'Veracode scanning'
-                withCredentials([ usernamePassword ( 
-                    credentialsId: 'veracode_login', usernameVariable: 'VERACODE_API_ID', passwordVariable: 'VERACODE_API_KEY') ]) {
-                        // fire-and-forget 
-                        veracode applicationName: "${VERACODE_APP_NAME}", criticality: 'VeryHigh', debug: true, fileNamePattern: '', pHost: '', pPassword: '', pUser: '', replacementPattern: '', sandboxName: '', scanExcludesPattern: '', scanIncludesPattern: '', scanName: "${BUILD_TAG}-${env.HOST_OS}", uploadExcludesPattern: '', uploadIncludesPattern: 'upload.zip', useIDkey: true, vid: "${VERACODE_API_ID}", vkey: "${VERACODE_API_KEY}"
-
-                        // wait for scan to complete (timeout: x)
-                        //veracode applicationName: "${VERACODE_APP_NAME}", criticality: 'VeryHigh', debug: true, timeout: 20, fileNamePattern: '', pHost: '', pPassword: '', pUser: '', replacementPattern: '', sandboxName: '', scanExcludesPattern: '', scanIncludesPattern: '', scanName: "${BUILD_TAG}", uploadExcludesPattern: '', uploadIncludesPattern: 'upload.zip', useIDkey: true, vid: "${VERACODE_API_ID}", vkey: "${VERACODE_API_KEY}"
-                    }      
-            }
-        }
-
-        stage ('Veracode SCA') {
-            steps {
-                echo 'Veracode SCA'
-                withCredentials([ string(credentialsId: 'SCA_Token', variable: 'SRCCLR_API_TOKEN')]) {
-                    nodejs(nodeJSInstallationName: 'NodeJS-12.0.0') {
-                        script {
-                            if(isUnix() == true) {
-                                sh "curl -sSL https://download.sourceclear.com/ci.sh | sh"
-
-                                // debug, no upload
-                                //sh "curl -sSL https://download.sourceclear.com/ci.sh | DEBUG=1 sh -s -- scan --no-upload"
-                            }
-                            else {
-                                powershell '''
-                                            Set-ExecutionPolicy AllSigned -Scope Process -Force
-                                            $ProgressPreference = "silentlyContinue"
-                                            iex ((New-Object System.Net.WebClient).DownloadString('https://download.srcclr.com/ci.ps1'))
-                                            srcclr scan
-                                            '''
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // only works on *nix, as we're building a Linux image
-        //  uses the natively installed docker
-        stage ('Deploy') {
-            when { expression { return (isUnix() == true) } }
-            steps {
-                echo 'building Docker image'
-                sh 'docker version'
-
-                ansiColor('xterm') {
-                    sh 'docker build -t nodegoat:${BUILD_TAG} .'
-                }
-                
-                // split into separate stage??
-                echo 'Deploying ...'
+    stages {
         
+        stage('Checkout Code') {
+            steps {
+                script {
+                    checkout scmGit(
+                        branches: [[name: '**']],  // Fetches all branches
+                        userRemoteConfigs: [[url: 'https://github.com/tsaekao/nodegoat.git']]
+                    )
+                }
             }
+        }
+
+        stage('Package Application') {
+            steps {
+                sh 'curl -fsS https://tools.veracode.com/veracode-cli/install | sh'
+                sh './veracode package -s . -o veracode-artifact -a trust'
+            }
+        }
+
+        stage('Upload SAST') {
+            when {
+                expression { env.CHANGE_TARGET == 'master' }  // Runs only when there's a pull request to master
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: '3dd8eb7f-547e-4b79-8a6c-f39954a06c63', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    veracode applicationName: 'nodegoat',
+                    criticality: 'VeryHigh',
+                    scanName: '$buildnumber',
+                    uploadIncludesPattern: 'veracode-artifact/',
+                    vid: USER,
+                    vkey: PASS,
+                    deleteIncompleteScanLevel: '2'
+                    sh "pwd"
+                    echo "SAST Scan Triggered"
+                }
+            }
+        }
+
+        stage('SCA Agent-Based Scan') {
+            steps {
+                withCredentials([string(credentialsId: 'SRCCLR_API_TOKEN', variable: 'SRCCLR_API_TOKEN')]) {
+                    catchError(buildResult: 'SUCCESS', message: 'SUCCESS') {
+                        sh "srcclr scan . --allow-dirty" 
+                        echo "SCA Agent-Based Scan Completed"
+                    }
+                }
+            }
+        }
+
+        stage('Link SCA Project to Application Profile') {
+            steps {
+                sh '''
+                    apt-get update && apt-get install -y python3 python3-pip || true
+                    pip3 install veracode-api-signing --upgrade
+                '''
+                withCredentials([usernamePassword(credentialsId: '3dd8eb7f-547e-4b79-8a6c-f39954a06c63', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh '''
+                        python3 link_sca_project.py --workspace_name "Jenkins Demo" --project_name "tsaekao/nodegoat" --application_profile "nodegoat" --api_id "${USER}" --api_key "${PASS}"
+                    '''
+                }
+            }
+        }
+        
+        stage('Veracode Pipeline Scan') {
+            when {
+                expression { env.BRANCH_NAME != 'master' }  // Runs when there’s a commit on any non-master branch
+            }
+            steps {
+                withCredentials([usernamePassword(credentialsId: '3dd8eb7f-547e-4b79-8a6c-f39954a06c63', passwordVariable: 'PASS', usernameVariable: 'USER')]) {
+                    sh '''
+                        export VERACODE_API_KEY_ID=${USER}
+                        export VERACODE_API_KEY_SECRET=${PASS}
+                        ./veracode static scan veracode-artifact/*-js.zip --fail-on-severity 'Very High, High' || true
+                        git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
+                        pip install -r veracode-pipeline-mitigation/requirements.txt
+                        python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results 'results.json'
+                        mv baseline-*.json baseline.json
+                        ./veracode static scan veracode-artifact/*-js.zip --fail-on-severity 'Very High, High' --baseline-file baseline.json
+                    '''
+                }
+            }
+        }
+    }
+
+    post { 
+        always { 
+            cleanWs()
         }
     }
 }
