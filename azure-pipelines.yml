@@ -63,7 +63,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: false
+  enabled: true
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
