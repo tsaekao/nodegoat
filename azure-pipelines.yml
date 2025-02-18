@@ -19,6 +19,7 @@ variables:
 steps:
 - task: Bash@3
   displayName: Test OAuth Token
+  enabled: false
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
@@ -89,33 +90,54 @@ steps:
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan Before Mitigations
-  enabled: false
+  enabled: true
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Bash@3
-  displayName: Retrieve Mitigations
-  enabled: false
+  displayName: Retrieve Mitigations with Dynamic Org & Project Name
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
     targetType: "inline"
     script: |
-      ls
+      apt-get update && apt-get install -y jq
+      
+      ORG_URL=$(echo $(System.CollectionUri))
+      PROJECT_NAME=$(echo $(System.TeamProject))
+      ORG_NAME=$(echo $ORG_URL | sed 's|https://dev.azure.com/||')
+
+      SERVICE_CONNECTION_NAME="Veracode-Demo"
+
+      # Get Service Connection ID
+      SERVICE_CONNECTION_ID=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
+          "$ORG_URL$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4" | \
+          jq -r ".value[] | select(.name==\"$SERVICE_CONNECTION_NAME\") | .id")
+
+      # Retrieve API credentials
+      AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
+          "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=6.0-preview.4")
+
+      # Extract API Key ID and Secret
+      VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.username')
+      VERACODE_API_KEY_SECRET=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.password')
+
+      # Export credentials as environment variables
+      export VERACODE_API_KEY_ID
+      export VERACODE_API_KEY_SECRET
+
+      # Run mitigation script
       git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
-      # cd veracode-pipeline-mitigation
-      ls
       pip install -r veracode-pipeline-mitigation/requirements.txt
-      export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
-      export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
-      ls
-      pwd
+
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
-  enabled: false
+  enabled: true
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
