@@ -97,61 +97,27 @@ steps:
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Bash@3
-  displayName: Retrieve Mitigations with Debugging
+  displayName: Retrieve Veracode Credentials by Service Connection ID
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
     targetType: "inline"
     script: |
-      echo "🔹 Starting debugging for Veracode mitigation retrieval..."
+      echo "🔹 Fetching Veracode service connection credentials..."
 
-      # Ensure jq is installed
-      if ! command -v jq &> /dev/null; then
-        echo "🔹 jq not found, installing it locally..."
-        mkdir -p "$HOME/bin"
-        curl -Lo "$HOME/bin/jq" https://stedolan.github.io/jq/download/linux64/jq
-        chmod +x "$HOME/bin/jq"
-        export PATH="$HOME/bin:$PATH"
-      fi
-      jq --version
-
-      # Retrieve organization & project name dynamically
-      ORG_URL=$(echo $(System.CollectionUri) | sed 's/\/$//')  # Remove trailing slash if present
+      # Dynamically retrieve organization & project details
+      ORG_URL=$(echo $(System.CollectionUri) | sed 's/\/$//')
       PROJECT_NAME=$(echo $(System.TeamProject))
-      ORG_NAME=$(echo $ORG_URL | sed 's|https://dev.azure.com/||')
 
-      echo "🔹 Organization: $ORG_NAME"
-      echo "🔹 Project: $PROJECT_NAME"
-      echo "🔹 Service Connection: Veracode-Demo"
+      # Use the known Service Connection ID from your screenshot
+      SERVICE_CONNECTION_ID="ba94cc12-152f-43fd-a998-dc7b61e0e8c2"
 
-      # Fetch all service connections (updated API version and type filter)
-      echo "🔹 Fetching all available service connections..."
-      SERVICE_CONNECTION_RESPONSE=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
-          -H "Content-Type: application/json" \
-          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4&type=endpoint")
+      echo "🔹 Fetching Service Connection by ID: $SERVICE_CONNECTION_ID"
 
-      echo "🔹 Raw Service Connection Response: $SERVICE_CONNECTION_RESPONSE"
-
-      # Extract the Service Connection ID for "Veracode-Demo"
-      SERVICE_CONNECTION_ID=$(echo $SERVICE_CONNECTION_RESPONSE | jq -r ".value[] | select(.name==\"Veracode-Demo\") | .id")
-
-      echo "🔹 Retrieved Service Connection ID: $SERVICE_CONNECTION_ID"
-
-      if [[ -z "$SERVICE_CONNECTION_ID" || "$SERVICE_CONNECTION_ID" == "null" ]]; then
-          echo "❌ ERROR: Service Connection ID not found!"
-          echo "🔹 Full Response: $SERVICE_CONNECTION_RESPONSE"
-          echo "🔹 Possible Fixes:"
-          echo "   - Ensure 'Veracode-Demo' exists in **this project** under Project Settings → Service Connections"
-          echo "   - Ensure the pipeline has permissions to access the service connection"
-          echo "   - Try granting 'Grant access permission to all pipelines' in the service connection settings"
-          exit 1
-      fi
-
-      # Fetch Service Connection Credentials
-      echo "🔹 Fetching Service Connection Credentials..."
+      # Fetch details for this specific service connection
       AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           -H "Content-Type: application/json" \
-          "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.1-preview.4")
+          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.1")
 
       echo "🔹 Raw Auth Details Response: $AUTH_DETAILS"
 
@@ -179,6 +145,7 @@ steps:
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
+
 
 
 
