@@ -97,7 +97,7 @@ steps:
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Bash@3
-  displayName: Retrieve Mitigations with Dynamic Org & Project Name
+  displayName: Retrieve Mitigations with Debugging
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
@@ -111,28 +111,51 @@ steps:
 
       SERVICE_CONNECTION_NAME="Veracode-Demo"
 
+      echo "🔹 Organization: $ORG_NAME"
+      echo "🔹 Project: $PROJECT_NAME"
+      echo "🔹 Service Connection: $SERVICE_CONNECTION_NAME"
+
       # Get Service Connection ID
       SERVICE_CONNECTION_ID=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           "$ORG_URL$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4" | \
           jq -r ".value[] | select(.name==\"$SERVICE_CONNECTION_NAME\") | .id")
 
+      echo "🔹 Retrieved Service Connection ID: $SERVICE_CONNECTION_ID"
+
+      if [[ -z "$SERVICE_CONNECTION_ID" || "$SERVICE_CONNECTION_ID" == "null" ]]; then
+          echo "❌ ERROR: Service Connection ID not found!"
+          exit 1
+      fi
+
       # Retrieve API credentials
       AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=6.0-preview.4")
+
+      echo "🔹 Retrieved Auth Details: $AUTH_DETAILS"
 
       # Extract API Key ID and Secret
       VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.username')
       VERACODE_API_KEY_SECRET=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.password')
 
-      # Export credentials as environment variables
+      echo "🔹 API Key ID Length: ${#VERACODE_API_KEY_ID}"
+      echo "🔹 API Key Secret Length: ${#VERACODE_API_KEY_SECRET}"
+
+      if [[ -z "$VERACODE_API_KEY_ID" || -z "$VERACODE_API_KEY_SECRET" || "$VERACODE_API_KEY_ID" == "null" || "$VERACODE_API_KEY_SECRET" == "null" ]]; then
+          echo "❌ ERROR: API credentials not retrieved!"
+          exit 1
+      fi
+
       export VERACODE_API_KEY_ID
       export VERACODE_API_KEY_SECRET
+
+      echo "✅ Veracode credentials successfully retrieved!"
 
       # Run mitigation script
       git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
+
 
 
 - task: VeracodePipelineScan@0
