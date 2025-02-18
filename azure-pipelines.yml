@@ -40,7 +40,7 @@ steps:
 
 - task: Bash@3
   displayName: Auto-Packaing With Veracode CLI
-  enabled: false
+  enabled: true
   inputs:
     targetType: "inline"
     script: |
