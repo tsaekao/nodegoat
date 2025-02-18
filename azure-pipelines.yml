@@ -133,14 +133,13 @@ steps:
           -H "Content-Type: application/json" \
           "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4")
 
-      echo "🔹 Raw Service Connection Response: $SERVICE_CONNECTION_RESPONSE"
-
       SERVICE_CONNECTION_ID=$(echo $SERVICE_CONNECTION_RESPONSE | jq -r ".value[] | select(.name==\"Veracode-Demo\") | .id")
 
       echo "🔹 Retrieved Service Connection ID: $SERVICE_CONNECTION_ID"
 
       if [[ -z "$SERVICE_CONNECTION_ID" || "$SERVICE_CONNECTION_ID" == "null" ]]; then
           echo "❌ ERROR: Service Connection ID not found!"
+          echo "🔹 Full Response: $SERVICE_CONNECTION_RESPONSE"
           exit 1
       fi
 
@@ -150,13 +149,13 @@ steps:
           -H "Content-Type: application/json" \
           "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=6.0-preview.4")
 
-      echo "🔹 Raw Auth Details Response: $AUTH_DETAILS"
+      echo "🔹 Retrieved Auth Details: $AUTH_DETAILS"
 
       # Extract API Key ID and Secret
-      VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.apitoken')
+      VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.username')
       VERACODE_API_KEY_SECRET=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.password')
 
-      echo "🔹 API Key ID: ${VERACODE_API_KEY_ID:0:6}********"
+      echo "🔹 API Key ID Length: ${#VERACODE_API_KEY_ID}"
       echo "🔹 API Key Secret Length: ${#VERACODE_API_KEY_SECRET}"
 
       if [[ -z "$VERACODE_API_KEY_ID" || "$VERACODE_API_KEY_SECRET" == "null" || "$VERACODE_API_KEY_ID" == "null" ]]; then
@@ -176,6 +175,7 @@ steps:
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
+
 
 
 ### DON'T EDIT
