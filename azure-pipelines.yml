@@ -103,22 +103,39 @@ steps:
   inputs:
     targetType: "inline"
     script: |
-      apt-get update && apt-get install -y jq
-      
-      ORG_URL=$(echo $(System.CollectionUri))
-      PROJECT_NAME=$(echo $(System.TeamProject))
-      ORG_NAME=$(echo $ORG_URL | sed 's|https://dev.azure.com/||')
+      echo "🔹 Starting debugging for Veracode mitigation retrieval..."
 
-      SERVICE_CONNECTION_NAME="Veracode-Demo"
+      # --- Fix: Install jq in User Space (No sudo) ---
+      echo "🔹 Checking if jq is installed..."
+      if ! command -v jq &> /dev/null; then
+        echo "🔹 jq not found, installing it locally..."
+        mkdir -p "$HOME/bin"
+        curl -Lo "$HOME/bin/jq" https://stedolan.github.io/jq/download/linux64/jq
+        chmod +x "$HOME/bin/jq"
+        export PATH="$HOME/bin:$PATH"
+      fi
+      jq --version
+
+      # --- Fix: Ensure Organization and Project Name Are Retrieved Correctly ---
+      ORG_URL=$(echo $(System.CollectionUri) | sed 's/\/$//')  # Remove trailing slash if present
+      PROJECT_NAME=$(echo $(System.TeamProject))
+
+      # Extract only the organization name from ORG_URL
+      ORG_NAME=$(echo $ORG_URL | sed 's|https://dev.azure.com/||')
 
       echo "🔹 Organization: $ORG_NAME"
       echo "🔹 Project: $PROJECT_NAME"
-      echo "🔹 Service Connection: $SERVICE_CONNECTION_NAME"
+      echo "🔹 Service Connection: Veracode-Demo"
 
-      # Get Service Connection ID
-      SERVICE_CONNECTION_ID=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
-          "$ORG_URL$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4" | \
-          jq -r ".value[] | select(.name==\"$SERVICE_CONNECTION_NAME\") | .id")
+      # --- Fix: Correct API Call to Retrieve Service Connection ID ---
+      echo "🔹 Fetching Service Connection ID..."
+      SERVICE_CONNECTION_RESPONSE=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
+          -H "Content-Type: application/json" \
+          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=6.0-preview.4")
+
+      echo "🔹 Raw Service Connection Response: $SERVICE_CONNECTION_RESPONSE"
+
+      SERVICE_CONNECTION_ID=$(echo $SERVICE_CONNECTION_RESPONSE | jq -r ".value[] | select(.name==\"Veracode-Demo\") | .id")
 
       echo "🔹 Retrieved Service Connection ID: $SERVICE_CONNECTION_ID"
 
@@ -127,37 +144,41 @@ steps:
           exit 1
       fi
 
-      # Retrieve API credentials
+      # --- Fix: Correct API Call to Retrieve API Credentials ---
+      echo "🔹 Fetching Service Connection Credentials..."
       AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
+          -H "Content-Type: application/json" \
           "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=6.0-preview.4")
 
-      echo "🔹 Retrieved Auth Details: $AUTH_DETAILS"
+      echo "🔹 Raw Auth Details Response: $AUTH_DETAILS"
 
       # Extract API Key ID and Secret
-      VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.username')
+      VERACODE_API_KEY_ID=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.apitoken')
       VERACODE_API_KEY_SECRET=$(echo $AUTH_DETAILS | jq -r '.authorization.parameters.password')
 
-      echo "🔹 API Key ID Length: ${#VERACODE_API_KEY_ID}"
+      echo "🔹 API Key ID: ${VERACODE_API_KEY_ID:0:6}********"
       echo "🔹 API Key Secret Length: ${#VERACODE_API_KEY_SECRET}"
 
-      if [[ -z "$VERACODE_API_KEY_ID" || -z "$VERACODE_API_KEY_SECRET" || "$VERACODE_API_KEY_ID" == "null" || "$VERACODE_API_KEY_SECRET" == "null" ]]; then
+      if [[ -z "$VERACODE_API_KEY_ID" || "$VERACODE_API_KEY_SECRET" == "null" || "$VERACODE_API_KEY_ID" == "null" ]]; then
           echo "❌ ERROR: API credentials not retrieved!"
           exit 1
       fi
 
+      # Export credentials as environment variables
       export VERACODE_API_KEY_ID
       export VERACODE_API_KEY_SECRET
 
       echo "✅ Veracode credentials successfully retrieved!"
 
-      # Run mitigation script
+      # --- Run Mitigation Script ---
+      echo "🔹 Cloning Veracode Pipeline Mitigation repository..."
       git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
 
 
-
+### DON'T EDIT
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
   enabled: true
