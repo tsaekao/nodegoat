@@ -124,11 +124,11 @@ steps:
       echo "🔹 Project: $PROJECT_NAME"
       echo "🔹 Service Connection: Veracode-Demo"
 
-      # Fetch all service connections (using an updated API version)
+      # Fetch all service connections (updated API version and type filter)
       echo "🔹 Fetching all available service connections..."
       SERVICE_CONNECTION_RESPONSE=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           -H "Content-Type: application/json" \
-          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=7.0-preview.2")
+          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints?api-version=7.1-preview.4&type=endpoint")
 
       echo "🔹 Raw Service Connection Response: $SERVICE_CONNECTION_RESPONSE"
 
@@ -151,7 +151,7 @@ steps:
       echo "🔹 Fetching Service Connection Credentials..."
       AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           -H "Content-Type: application/json" \
-          "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.0-preview.2")
+          "$ORG_URL/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.1-preview.4")
 
       echo "🔹 Raw Auth Details Response: $AUTH_DETAILS"
 
@@ -179,6 +179,7 @@ steps:
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
+
 
 
 
