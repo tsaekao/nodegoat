@@ -97,7 +97,7 @@ steps:
     additionalFlags: '--fail_on_severity="Very High, High"'
 
 - task: Bash@3
-  displayName: Retrieve Veracode Credentials by Service Connection ID
+  displayName: Retrieve Veracode Credentials with Auth Details
   env:
     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
   inputs:
@@ -105,19 +105,19 @@ steps:
     script: |
       echo "🔹 Fetching Veracode service connection credentials..."
 
-      # Dynamically retrieve organization & project details
+      # Retrieve organization & project details
       ORG_URL=$(echo $(System.CollectionUri) | sed 's/\/$//')
       PROJECT_NAME=$(echo $(System.TeamProject))
 
-      # Use the known Service Connection ID from your screenshot
+      # Use the known Service Connection ID
       SERVICE_CONNECTION_ID="ba94cc12-152f-43fd-a998-dc7b61e0e8c2"
 
       echo "🔹 Fetching Service Connection by ID: $SERVICE_CONNECTION_ID"
 
-      # Fetch details for this specific service connection
+      # Fetch service connection details with authentication parameters
       AUTH_DETAILS=$(curl -s -u :$SYSTEM_ACCESSTOKEN \
           -H "Content-Type: application/json" \
-          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.1")
+          "$ORG_URL/$PROJECT_NAME/_apis/serviceendpoint/endpoints/$SERVICE_CONNECTION_ID?api-version=7.1&include-auth=true")
 
       echo "🔹 Raw Auth Details Response: $AUTH_DETAILS"
 
@@ -145,8 +145,6 @@ steps:
       pip install -r veracode-pipeline-mitigation/requirements.txt
       python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
       mv baseline-*.json baseline.json
-
-
 
 
 
