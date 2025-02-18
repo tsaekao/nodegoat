@@ -18,8 +18,28 @@ variables:
 
 steps:
 - task: Bash@3
+  displayName: Test OAuth Token
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Install jq for JSON parsing
+      apt-get update && apt-get install -y jq
+
+      # Dynamically retrieve the org and project name
+      ORG_URL=$(echo $(System.CollectionUri))
+      YOUR_PROJECT_NAME=$(echo $(System.TeamProject))
+
+      # Extract only the organization name from ORG_URL (removes "https://dev.azure.com/")
+      YOUR_ORG_NAME=$(echo $ORG_URL | sed 's|https://dev.azure.com/||')
+      echo "Testing Azure DevOps OAuth Token..."
+      curl -s -u :$SYSTEM_ACCESSTOKEN \
+        "https://dev.azure.com/$YOUR_ORG_NAME/$YOUR_PROJECT_NAME/_apis/projects?api-version=6.0" | jq .
+
+- task: Bash@3
   displayName: Auto-Packaing With Veracode CLI
-  enabled: true
+  enabled: false
   inputs:
     targetType: "inline"
     script: |
@@ -31,7 +51,7 @@ steps:
 
 - task: Bash@3
   displayName: Container Scanning
-  enabled: true
+  enabled: false
   inputs:
     targetType: "inline"
     script: |
@@ -42,7 +62,7 @@ steps:
 
 - task: Veracode@3
   displayName: Upload & Scan
-  enabled: true
+  enabled: false
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
@@ -69,7 +89,7 @@ steps:
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan Before Mitigations
-  enabled: true
+  enabled: false
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
@@ -77,7 +97,7 @@ steps:
 
 - task: Bash@3
   displayName: Retrieve Mitigations
-  enabled: true
+  enabled: false
   inputs:
     targetType: "inline"
     script: |
@@ -95,7 +115,7 @@ steps:
 
 - task: VeracodePipelineScan@0
   displayName: Pipeline Scan After Mitigations
-  enabled: true
+  enabled: false
   inputs:
     serviceConnection: 'Veracode-Demo'
     fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
@@ -104,7 +124,7 @@ steps:
 
 - task: CmdLine@2
   displayName: SCA Agent-Based Scan
-  enabled: true
+  enabled: false
   inputs:
     script: |
       export SCM_URI='https://nodegoat-ADO'
