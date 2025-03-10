@@ -52,7 +52,7 @@ steps:
 
 - task: Bash@3
   displayName: Container Scanning
-  enabled: false
+  enabled: true
   inputs:
     targetType: "inline"
     script: |
