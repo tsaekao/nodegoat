@@ -141,6 +141,16 @@ steps:
       export SCM_REV=1.1
       curl -sSL $scaDownloadUrl | env bash -s scan --scm-uri $SCM_URI --scm-rev $SCM_REV --scm-ref $SCM_REF --scm-ref-type $SCM_REF_TYPE --update-advisor --allow-dirty
 
+- task: Bash@3
+  displayName: SBOM
+  enabled: true
+  inputs:
+    targetType: "inline"
+    script: |
+      export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
+      export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
+      ./veracode sbom -s '$(Build.SourcesDirectory)' -f table --type directory
+
 - task: Veracode Flaw Importer@3
   enabled: false
   inputs:
