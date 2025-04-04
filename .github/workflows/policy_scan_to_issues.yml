@@ -1,6 +1,10 @@
 name: Veracode Policy Scan to Issues
 on: workflow_dispatch
-    
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
 jobs:
   static_analysis:
     name: Static Analysis
