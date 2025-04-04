@@ -45,9 +45,13 @@ jobs:
   get-policy-flaws:
 #    needs: static_analysis
     runs-on: ubuntu-latest
-    container: 
-      image: veracode/api-signing:latest
     steps:
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie jq
+          pip install veracode-api-signing
+
       # Note: this will only work up to about 500 flaws
       #		due to Veracode results limiting
       # See the get_flaws.sh script in the helpers directory
