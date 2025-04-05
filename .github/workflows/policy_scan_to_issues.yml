@@ -73,24 +73,31 @@ jobs:
           path: /tmp/veracode/policy_flaws.json
   
   import-policy-flaws:
-    needs: get-policy-flaws
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
-      - name: Download flaw file
-        uses: actions/download-artifact@v3.1.3
-        with:
-          name: policy-flaws
-          path: /tmp/veracode
+      - name: Checkout repo
+        uses: actions/checkout@v3
+  
+      - name: Set up environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y httpie jq
+          pip install veracode-api-signing
+  
+      - name: Download flaw data
+        run: |
+          mkdir -p /tmp/veracode
+          cd /tmp/veracode
+          export VERACODE_API_KEY_ID=${{ secrets.VERACODE_API_ID }}
+          export VERACODE_API_KEY_SECRET=${{ secrets.VERACODE_API_KEY }}
+          guid=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v1/applications?name=NodeGoat" | jq -r '._embedded.applications[0].guid')
+          total_flaws=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True" | jq -r '.page.total_elements')
+          http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True&size=${total_flaws}" > policy_flaws.json
   
       - name: Import flaws as GitHub issues
-        uses: veracode/veracode-flaws-to-issues@v2.1.19
+        uses: veracode/veracode-flaws-to-issues@main
         with:
-          scan-results-json: '/tmp/veracode/policy_flaws.json'
+          scan-results-json: /tmp/veracode/policy_flaws.json
   
-  
-      - name: import flaws as issues
-        uses: veracode/veracode-flaws-to-issues@v2.1.19
-        with:
-          scan-results-json: '/tmp/policy_flaws.json'
