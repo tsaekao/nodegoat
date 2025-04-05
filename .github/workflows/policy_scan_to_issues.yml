@@ -6,43 +6,43 @@ permissions:
   issues: write
 
 jobs:
-# static_analysis:
-#   name: Static Analysis
-#   runs-on: ubuntu-latest
-#   env:
-#       VERACODE_API_KEY_ID: ${{ secrets.VERACODE_API_ID }}
-#       VERACODE_API_KEY_SECRET: ${{ secrets.VERACODE_API_KEY }}
-#   steps:
-#     - name: Check out main branch
-#       uses: actions/checkout@v2
-#
-#     - name: Download CLI
-#       uses: wei/curl@master
-#       with:
-#         args: -fsS https://tools.veracode.com/veracode-cli/install | sh
-#
-#     - name: Package Application
-#       run: ./veracode package -s . -o veracode-artifact -a trust
-#
-#     # - name: Build with Maven
-#     #   run: mvn -B package --file pom.xml
-#
-#     - name: Veracode Upload And Scan
-#       uses: veracode/veracode-uploadandscan-action@0.2.6
-#       with:
-#         appname: 'nodegoat'
-#         createprofile: false
-#         filepath: 'veracode-artifact'
-#         vid: '${{ secrets.VERACODE_API_ID }}'
-#         vkey: '${{ secrets.VERACODE_API_KEY }}'
-#         createsandbox: 'false'
-#         scantimeout: 60
-#         scanpollinginterval: 120
+ static_analysis:
+   name: Static Analysis
+   runs-on: ubuntu-latest
+   env:
+       VERACODE_API_KEY_ID: ${{ secrets.VERACODE_API_ID }}
+       VERACODE_API_KEY_SECRET: ${{ secrets.VERACODE_API_KEY }}
+   steps:
+     - name: Check out main branch
+       uses: actions/checkout@v2
+
+     - name: Download CLI
+       uses: wei/curl@master
+       with:
+         args: -fsS https://tools.veracode.com/veracode-cli/install | sh
+
+     - name: Package Application
+       run: ./veracode package -s . -o veracode-artifact -a trust
+
+     # - name: Build with Maven
+     #   run: mvn -B package --file pom.xml
+
+     - name: Veracode Upload And Scan
+       uses: veracode/veracode-uploadandscan-action@0.2.6
+       with:
+         appname: 'nodegoat'
+         createprofile: false
+         filepath: 'veracode-artifact'
+         vid: '${{ secrets.VERACODE_API_ID }}'
+         vkey: '${{ secrets.VERACODE_API_KEY }}'
+         createsandbox: 'false'
+         scantimeout: 60
+         scanpollinginterval: 120
 
 # this first step will get existing flaws for an Application Profile (in this case, NodeGoat).  
 # 	(obviously) Change the name=<app_name> in the first http call to be 
 #	the name of your Application on the Veracode platform
-  import-policy-flaws:
+ import-policy-flaws:
     runs-on: ubuntu-latest
     permissions:
       issues: write
