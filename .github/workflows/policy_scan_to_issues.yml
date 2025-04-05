@@ -29,6 +29,7 @@ jobs:
 
      - name: Veracode Upload And Scan
        uses: veracode/veracode-uploadandscan-action@0.2.6
+       continue-on-error: true
        with:
          appname: 'nodegoat'
          createprofile: false
@@ -43,6 +44,7 @@ jobs:
 # 	(obviously) Change the name=<app_name> in the first http call to be 
 #	the name of your Application on the Veracode platform
  import-policy-flaws:
+    needs: static_analysis
     runs-on: ubuntu-latest
     permissions:
       issues: write
