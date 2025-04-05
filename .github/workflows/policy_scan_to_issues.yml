@@ -42,60 +42,38 @@ jobs:
 # this first step will get existing flaws for an Application Profile (in this case, NodeGoat).  
 # 	(obviously) Change the name=<app_name> in the first http call to be 
 #	the name of your Application on the Veracode platform
-  get-policy-flaws:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y httpie jq
-          pip install veracode-api-signing
-  
-      - name: Get policy flaws
-        run: |
-          mkdir -p /tmp/veracode
-          cd /tmp/veracode
-          export VERACODE_API_KEY_ID=${{ secrets.VERACODE_API_ID }}
-          export VERACODE_API_KEY_SECRET=${{ secrets.VERACODE_API_KEY }}
-          
-          guid=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v1/applications?name=NodeGoat" | jq -r '._embedded.applications[0].guid')
-          echo "GUID: ${guid}"
-          
-          total_flaws=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True" | jq -r '.page.total_elements')
-          echo "TOTAL_FLAWS: ${total_flaws}"
-          
-          http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True&size=${total_flaws}" > policy_flaws.json
-  
-      - name: Upload results file
-        uses: actions/upload-artifact@v3.1.3
-        with:
-          name: policy-flaws
-          path: /tmp/veracode/policy_flaws.json
-  
   import-policy-flaws:
     runs-on: ubuntu-latest
     permissions:
       issues: write
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repo (required for actions to access repo metadata)
         uses: actions/checkout@v3
-  
+
       - name: Set up environment
         run: |
           sudo apt-get update
           sudo apt-get install -y httpie jq
           pip install veracode-api-signing
-  
-      - name: Download flaw data
+
+      - name: Download Veracode policy flaws
         run: |
           mkdir -p /tmp/veracode
           cd /tmp/veracode
           export VERACODE_API_KEY_ID=${{ secrets.VERACODE_API_ID }}
           export VERACODE_API_KEY_SECRET=${{ secrets.VERACODE_API_KEY }}
+
           guid=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v1/applications?name=NodeGoat" | jq -r '._embedded.applications[0].guid')
+          echo "GUID: ${guid}"
+
           total_flaws=$(http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True" | jq -r '.page.total_elements')
-          http --auth-type veracode_hmac GET "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True&size=${total_flaws}" > policy_flaws.json
-  
+          echo "TOTAL FLAWS: ${total_flaws}"
+
+          http --auth-type veracode_hmac GET \
+            "https://api.veracode.com/appsec/v2/applications/${guid}/findings?scan_type=STATIC&violates_policy=True&size=${total_flaws}" \
+            > policy_flaws.json
+
       - name: Import flaws as GitHub issues
         uses: veracode/veracode-flaws-to-issues@main
         with:
