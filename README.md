@@ -88,6 +88,6 @@ Fork the existing repo into your account, and then use your copy of the repo.  C
 Follow the steps above, except use your repo instead of the master copy on gitlab.com
 
 TEST Againx7
-TEST GitHub/ADO Communication
+TEST GitHub/ADO Communication x2
 
 
