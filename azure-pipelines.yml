@@ -3,17 +3,116 @@
 # Add steps that analyze code, save build artifacts, and scan
 
 trigger:
-- master
-- *
+  branches:
+    include:
+      - "*"
+
+pr:
+  branches:
+    include:
+      - master
+
 
 pool:
   vmImage: ubuntu-latest
 
+variables:
+    enableCustomProcessTemplate: true
+    customWorkItemType: Flaw
+    customPTActiveStatus: Working
+    customPTNewStatus: Introducing
+    customPTResolvedStatus: Resolved
+    customPTCloseStatus: Closed
+
 steps:
 - task: Bash@3
-  displayName: Starter Pipeline
+  displayName: Auto-Packaing With Veracode CLI
   enabled: true
   inputs:
-    targetType: 'inline'
+    targetType: "inline"
     script: |
-      echo "My Pipeline"
+      curl -fsS https://tools.veracode.com/veracode-cli/install | sh
+      ./veracode package -s '$(Build.SourcesDirectory)' -o '$(build.artifactstagingdirectory)' -a trust
+
+
+- task: Veracode@3
+  displayName: Upload & Scan
+  enabled: true
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'), eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/master'))
+  inputs:
+    ConnectionDetailsSelection: 'Service Connection'
+    AnalysisService: 'Veracode-Demo'
+    veracodeAppProfile: 'nodegoat'
+    version: 'nodegoat-$(build.buildNumber)'
+    filepath: '$(build.artifactstagingdirectory)'
+    # sandboxName: 'Azure DevOps'
+    createSandBox: false
+    importResults: true
+    maximumWaitTime: '360'
+
+
+
+- task: VeracodePipelineScan@0
+  displayName: Pipeline Scan Before Mitigations
+  enabled: true
+  condition: and(succeeded(), ne(variables['Build.SourceBranch'], 'refs/heads/master'))
+  inputs:
+    serviceConnection: 'Veracode-Demo'
+    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
+    additionalFlags: '--fail_on_severity="Very High, High"'
+
+- task: Bash@3
+  displayName: Retrieve Mitigations
+  enabled: false
+  inputs:
+    targetType: "inline"
+    script: |
+      git clone https://github.com/tjarrettveracode/veracode-pipeline-mitigation
+      # cd veracode-pipeline-mitigation
+      pip install -r veracode-pipeline-mitigation/requirements.txt
+      export VERACODE_API_KEY_ID=$(VERACODE_API_ID)
+      export VERACODE_API_KEY_SECRET=$(VERACODE_API_KEY)
+      python veracode-pipeline-mitigation/vcpipemit.py -an nodegoat --results '$(Build.SourcesDirectory)/pipeline.json'
+      mv baseline-*.json baseline.json
+
+
+- task: VeracodePipelineScan@0
+  displayName: Pipeline Scan After Mitigations
+  enabled: false
+  inputs:
+    serviceConnection: 'Veracode-Demo'
+    fileToScan: '$(build.artifactstagingdirectory)/veracode-auto-pack-s-js.zip'
+    baselineFile: '$(Build.SourcesDirectory)/baseline.json'
+    additionalFlags: '--fail_on_severity="Very High, High"'
+
+- task: CmdLine@2
+  displayName: SCA Agent-Based Scan
+  enabled: true
+  inputs:
+    script: |
+      export SCM_URI='https://nodegoat-ADO'
+      export SRCCLR_API_TOKEN=$(SRCCLR_API_TOKEN)
+      export scaDownloadUrl=https://download.srcclr.com/ci.sh
+      export SCM_REF_TYPE=branch
+      # make sure the branch name is set appropriately for the below scm_ref 
+      export SCM_REF=master
+      export SCM_REV=1.0
+      curl -sSL $scaDownloadUrl | env bash -s scan --scm-uri $SCM_URI --scm-rev $SCM_REV --scm-ref $SCM_REF --scm-ref-type $SCM_REF_TYPE --update-advisor --allow-dirty
+
+- task: Veracode Flaw Importer@3
+  enabled: false
+  inputs:
+    ConnectionDetailsSelection: 'Service Connection'
+    AnalysisService: 'Veracode-Demo'
+    veracodeAppProfile: 'nodegoat'
+    sandboxName: 'Azure DevOps'
+    scanType: 'Static, SCA'
+    importType: 'All Unmitigated Flaws Violating Policy'
+    workItemType: 'Issue'
+    area: '$(system.teamProject)'
+    overwriteAreaPathInWorkItemsOnImport: true
+    iterationPath: '$(system.teamProject)'
+    overwriteIterationPath: true
+    addCustomTag: 'external, internet facing'
+    flawImportLimit: '1000'
+
