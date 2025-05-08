@@ -39,7 +39,7 @@ steps:
 - task: Veracode@3
   displayName: Upload & Scan
   enabled: true
-  condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'), eq(variables['System.PullRequest.TargetBranch'], 'refs/heads/master'))
+  condition: eq(variables['Build.Reason'], 'PullRequest')
   inputs:
     ConnectionDetailsSelection: 'Service Connection'
     AnalysisService: 'Veracode-Demo'
